@@ -103,5 +103,12 @@
 
     <!-- SEU SCRIPT PRINCIPAL -->
     <script src="script.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log("Modo Offline Ativado com Sucesso!"))
+                .catch(err => console.log("Erro ao ativar offline:", err));
+        }
+    </script>
 </body>
 </html>
