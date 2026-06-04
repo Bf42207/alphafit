@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaFit - Pro Workout Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="estilo.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#121212">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>AlphaFit - Pro Workout Tracker</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
 
@@ -39,51 +39,134 @@
 
     <!-- TIMER GLOBAL -->
     <div id="timer-global" class="timer-global">
-        <span>⏱️ Tempo de Treino: <span id="tempo-cronometro">00:00</span></span>
-        <button class="btn-encerrar-treino" id="btn-encerrar">Encerrar Treino</button>
+        <span>⏱️ Tempo: <span id="tempo-cronometro">00:00</span></span>
+        <button class="btn-encerrar-treino" id="btn-encerrar">Encerrar</button>
     </div>
 
-    <!-- CONTEÚDO PRINCIPAL DO APP -->
-    <div class="container" id="conteudo-app" style="display: none;">    
-        <div class="abas">
-            <button class="aba-btn ativa" id="aba-montar-btn"><i class="fa-solid fa-pen-to-square"></i> Montar</button>
-            <button class="aba-btn" id="aba-prontos-btn"><i class="fa-solid fa-folder-open"></i> Prontos (<span id="num-prontos">0</span>)</button>
-            <button class="aba-btn" id="aba-historico-btn"><i class="fa-solid fa-clock-rotate-left"></i> Histórico</button>
-            <button class="aba-btn" id="btn-sair-usuario" style="color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
-        </div>
+    <!-- ESTRUTURA PRINCIPAL DO APP COM MENU LATERAL -->
+    <div class="wrapper-app" id="conteudo-app" style="display: none;">
+        
+        <!-- MENU LATERAL ESQUERDO -->
+        <nav class="menu-lateral">
+            <div class="logo-menu">⚡ AlphaFit</div>
+            <div class="abas-menu">
+                <button class="menu-btn ativa" id="aba-feed-btn"><i class="fa-solid fa-house"></i> <span>Feed Social</span></button>
+                <button class="menu-btn" id="aba-montar-btn"><i class="fa-solid fa-pen-to-square"></i> <span>Montar Treino</span></button>
+                <button class="menu-btn" id="aba-prontos-btn"><i class="fa-solid fa-folder-open"></i> <span>Meus Treinos (<span id="num-prontos">0</span>)</span></button>
+                <button class="menu-btn" id="aba-historico-btn"><i class="fa-solid fa-clock-rotate-left"></i> <span>Histórico</span></button>
+                <button class="menu-btn" id="aba-perfil-btn"><i class="fa-solid fa-user"></i> <span>Perfil & Evolução</span></button>
+            </div>
+            <button class="menu-btn btn-sair" id="btn-sair-usuario"><i class="fa-solid fa-right-from-bracket"></i> <span>Sair</span></button>
+        </nav>
 
-        <div id="alerta" class="alerta"></div>
+        <!-- CONTEÚDO PRINCIPAL (DIREITO) -->
+        <main class="conteudo-principal">
+            <div id="alerta" class="alerta"></div>
 
-        <!-- SEÇÃO MONTAR -->
-        <div id="secao-montar">
-            <h2 id="titulo-montar">🛠️ Criar Nova Rotina</h2>
-            <input type="text" id="nome-treino" class="input-nome-treino" placeholder="Ex: Treino de Peito Avançado">
+            <!-- 1. SEÇÃO FEED SOCIAL (ESTILO INSTAGRAM) -->
+            <div id="secao-feed">
+                <div class="feed-header">
+                    <h2>🏋️‍♂️ Linha do Tempo</h2>
+                    <button class="btn-novo-post" id="btn-abrir-postar"><i class="fa-solid fa-plus"></i> Compartilhar Treino</button>
+                </div>
+                
+                <!-- Caixa para criar nova publicação -->
+                <div id="caixa-criar-post" class="card-feed" style="display: none; margin-bottom: 20px;">
+                    <h3>Nova Publicação</h3>
+                    <textarea id="texto-post" placeholder="Como foi o treino de hoje? Conta pra galera..."></textarea>
+                    <input type="text" id="url-foto-post" placeholder="Link de uma foto do treino (opcional)">
+                    <button class="btn-ts btn-ts-iniciar" id="btn-publicar-post" style="margin-top: 10px;">Publicar</button>
+                </div>
 
-            <div class="busca-container">
-                <input type="text" id="campo-ia" class="input-ia" placeholder="🔍 Busque o exercício..." autocomplete="off">
-                <div id="caixa-sugestoes" class="sugestoes-box"></div>
+                <div id="lista-feed">
+                    <!-- Posts vão aparecer aqui via JavaScript -->
+                </div>
             </div>
 
-            <div id="treino-atual"></div>
+            <!-- 2. SEÇÃO MONTAR -->
+            <div id="secao-montar" style="display: none;">
+                <h2 id="titulo-montar">🛠️ Criar Nova Rotina</h2>
+                <input type="text" id="nome-treino" class="input-nome-treino" placeholder="Ex: Treino de Peito Avançado">
 
-            <button class="btn-acao-principal" id="btn-salvar-rotina"><i class="fa-solid fa-floppy-disk"></i> Salvar Treino</button>
-            <button class="btn-acao-principal" id="btn-comecar-direto" style="background-color: var(--accent); color: white;"><i class="fa-solid fa-play"></i> Começar sem Salvar</button>
-        </div>
+                <div class="busca-container">
+                    <input type="text" id="campo-ia" class="input-ia" placeholder="🔍 Busque o exercício..." autocomplete="off">
+                    <div id="caixa-sugestoes" class="sugestoes-box"></div>
+                </div>
 
-        <!-- SEÇÃO PRONTOS -->
-        <div id="secao-prontos" style="display: none;">
-            <h2>📋 Meus Treinos Salvos</h2>
-            <div id="lista-treinos-salvos"></div>
-        </div>
+                <div id="treino-atual"></div>
 
-        <!-- SEÇÃO HISTÓRICO -->
-        <div id="secao-historico" style="display: none;">
-            <h2>⏱️ Histórico de Sessões</h2>
-            <div id="lista-historico"></div>
-        </div>
+                <button class="btn-acao-principal" id="btn-salvar-rotina"><i class="fa-solid fa-floppy-disk"></i> Salvar Treino</button>
+                <button class="btn-acao-principal" id="btn-comecar-direto" style="background-color: var(--accent); color: white;"><i class="fa-solid fa-play"></i> Começar sem Salvar</button>
+            </div>
+
+            <!-- 3. SEÇÃO PRONTOS -->
+            <div id="secao-prontos" style="display: none;">
+                <h2>📋 Meus Treinos Salvos</h2>
+                <div id="lista-treinos-salvos"></div>
+            </div>
+
+            <!-- 4. SEÇÃO HISTÓRICO -->
+            <div id="secao-historico" style="display: none;">
+                <h2>⏱️ Histórico de Sessões</h2>
+                <div id="lista-historico"></div>
+            </div>
+
+            <!-- 5. SEÇÃO PERFIL & RENDIMENTO (CALENDÁRIO E PESO) -->
+            <div id="secao-perfil" style="display: none;">
+                <div class="perfil-topo">
+                    <div class="avatar-grande">👤</div>
+                    <div>
+                        <h2 id="nome-perfil-usuario">Carregando...</h2>
+                        <p class="status-privacidade">Perfil: <span id="status-visibilidade">Público 🌐</span> <button id="btn-alternar-privacidade" class="btn-pequeno">Mudar</button></p>
+                    </div>
+                </div>
+
+                <!-- Painel de Estatísticas -->
+                <div class="grid-stats">
+                    <div class="card-stat">
+                        <h4>Dias Treinados</h4>
+                        <p id="total-dias-treinados">0 dias</p>
+                    </div>
+                    <div class="card-stat">
+                        <h4>Peso Atual</h4>
+                        <p id="peso-atual-texto">-- kg</p>
+                    </div>
+                </div>
+
+                <!-- Painel de Histórico de Peso / Carga -->
+                <div class="card-perfil-secao">
+                    <h3>📈 Registrar Evolução (Peso / Carga)</h3>
+                    <div class="form-inline">
+                        <input type="number" id="input-novo-peso" placeholder="Ex: 78.5 (KG)">
+                        <button class="btn-pequeno-acao" id="btn-registrar-peso">Registrar</button>
+                    </div>
+                    <div id="historico-pesos" class="lista-mini-historico">
+                        <!-- Histórico de peso listado aqui -->
+                    </div>
+                </div>
+
+                <!-- Calendário Dinâmico de Treinos -->
+                <div class="card-perfil-secao">
+                    <h3>📅 Calendário de Treinos</h3>
+                    <div class="calendario-container">
+                        <div class="calendario-header">
+                            <button id="btn-prev-mes"><i class="fa-solid fa-chevron-left"></i></button>
+                            <h4 id="mes-ano-calendario">Junho 2026</h4>
+                            <button id="btn-next-mes"><i class="fa-solid fa-chevron-right"></i></button>
+                        </div>
+                        <div class="dias-semana-grid">
+                            <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                        </div>
+                        <div id="dias-calendario-grid" class="dias-grid">
+                            <!-- Dias gerados via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <!-- MODAL DE DETALHES DO HISTÓRICO -->
+    <!-- MODAL DE DETALHES -->
     <div id="modal-historico" class="modal-overlay">
         <div class="modal-conteudo">
             <div class="modal-header">
@@ -96,19 +179,9 @@
         </div>
     </div>
 
-    <!-- IMPORTS DO FIREBASE -->
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-
-    <!-- SEU SCRIPT PRINCIPAL -->
     <script src="script.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('./sw.js')
-                .then(() => console.log("Modo Offline Ativado com Sucesso!"))
-                .catch(err => console.log("Erro ao ativar offline:", err));
-        }
-    </script>
 </body>
 </html>
