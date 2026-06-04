@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlphaFit - Pro Workout Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+
+    <!-- TELA DE AUTENTICAÇÃO -->
+    <div id="tela-auth" class="auth-overlay">
+        <div class="auth-box">
+            <h1 class="auth-logo">⚡ AlphaFit</h1>
+            
+            <div id="form-login">
+                <h2>Entrar na sua Conta</h2>
+                <input type="text" id="login-usuario" class="input-ia" placeholder="Usuário ou E-mail">
+                <input type="password" id="login-senha" class="input-ia" placeholder="Sua Senha" style="margin-top: 10px;">
+                <button class="btn-acao-principal" id="btn-entrar" style="margin-top: 15px;">Entrar</button>
+                <p class="auth-alternar">Não tem conta? <a href="#" id="link-ir-cadastrar">Cadastre-se</a></p>
+            </div>
+
+            <div id="form-cadastro" style="display: none;">
+                <h2>Criar Nova Conta</h2>
+                <input type="text" id="cad-usuario" class="input-ia" placeholder="Escolha um Usuário">
+                <input type="password" id="cad-senha" class="input-ia" placeholder="Crie uma Senha" style="margin-top: 10px;">
+                <input type="password" id="cad-senha-confirma" class="input-ia" placeholder="Confirme a Senha" style="margin-top: 10px;">
+                <button class="btn-acao-principal" id="btn-registrar" style="margin-top: 15px; background-color: var(--accent); color: white;">Criar Conta</button>
+                <p class="auth-alternar">Já tem conta? <a href="#" id="link-ir-login">Fazer Login</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- TIMER GLOBAL -->
+    <div id="timer-global" class="timer-global">
+        <span>⏱️ Tempo de Treino: <span id="tempo-cronometro">00:00</span></span>
+        <button class="btn-encerrar-treino" id="btn-encerrar">Encerrar Treino</button>
+    </div>
+
+    <!-- CONTEÚDO PRINCIPAL DO APP -->
+    <div class="container" id="conteudo-app" style="display: none;">    
+        <div class="abas">
+            <button class="aba-btn ativa" id="aba-montar-btn"><i class="fa-solid fa-pen-to-square"></i> Montar</button>
+            <button class="aba-btn" id="aba-prontos-btn"><i class="fa-solid fa-folder-open"></i> Prontos (<span id="num-prontos">0</span>)</button>
+            <button class="aba-btn" id="aba-historico-btn"><i class="fa-solid fa-clock-rotate-left"></i> Histórico</button>
+            <button class="aba-btn" id="btn-sair-usuario" style="color: #ff5252;"><i class="fa-solid fa-right-from-bracket"></i> Sair</button>
+        </div>
+
+        <div id="alerta" class="alerta"></div>
+
+        <!-- SEÇÃO MONTAR -->
+        <div id="secao-montar">
+            <h2 id="titulo-montar">🛠️ Criar Nova Rotina</h2>
+            <input type="text" id="nome-treino" class="input-nome-treino" placeholder="Ex: Treino de Peito Avançado">
+
+            <div class="busca-container">
+                <input type="text" id="campo-ia" class="input-ia" placeholder="🔍 Busque o exercício..." autocomplete="off">
+                <div id="caixa-sugestoes" class="sugestoes-box"></div>
+            </div>
+
+            <div id="treino-atual"></div>
+
+            <button class="btn-acao-principal" id="btn-salvar-rotina"><i class="fa-solid fa-floppy-disk"></i> Salvar Treino</button>
+            <button class="btn-acao-principal" id="btn-comecar-direto" style="background-color: var(--accent); color: white;"><i class="fa-solid fa-play"></i> Começar sem Salvar</button>
+        </div>
+
+        <!-- SEÇÃO PRONTOS -->
+        <div id="secao-prontos" style="display: none;">
+            <h2>📋 Meus Treinos Salvos</h2>
+            <div id="lista-treinos-salvos"></div>
+        </div>
+
+        <!-- SEÇÃO HISTÓRICO -->
+        <div id="secao-historico" style="display: none;">
+            <h2>⏱️ Histórico de Sessões</h2>
+            <div id="lista-historico"></div>
+        </div>
+    </div>
+
+    <!-- MODAL DE DETALHES DO HISTÓRICO -->
+    <div id="modal-historico" class="modal-overlay">
+        <div class="modal-conteudo">
+            <div class="modal-header">
+                <h3 id="modal-titulo-treino">Nome do Treino</h3>
+                <button class="btn-fechar-modal" id="btn-fechar-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-lista-exercicios" class="hist-lista-exercicios"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IMPORTS DO FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+    <!-- SEU SCRIPT PRINCIPAL -->
+    <script src="script.js"></script>
+</body>
+</html>
