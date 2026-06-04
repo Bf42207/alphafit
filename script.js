@@ -1,4 +1,6 @@
-// CONFIGURAÇÃO DO SEU FIREBASE
+// ==========================================================================
+// 1. CONFIGURAÇÃO DO FIREBASE & ESTADO GLOBAL
+// ==========================================================================
 const firebaseConfig = {
     apiKey: "AIzaSyBJE7MTjB-Kj-Mqm45I9q4MNGYj8RUeemo",
     authDomain: "alphafit-7f01c.firebaseapp.com",
@@ -13,225 +15,291 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+// Elementos Domésticos / Interface
 const telaAuth = document.getElementById('tela-auth');
 const conteudoApp = document.getElementById('conteudo-app');
 const formLogin = document.getElementById('form-login');
 const formCadastro = document.getElementById('form-cadastro');
 
+// Variáveis de Estado
 let usuarioLogadoAtualmente = null;
+let nomeUsuarioLogado = "Atleta Alpha";
+let perfilPublico = true;
 let exerciciosNoTreino = []; 
 let rotinasSalvas = [];
 let historicoTreinos = [];
-let idEdicaoAtual = null; 
+let historicoPesos = [];
 
+let idEdicaoAtual = null; 
 let timerInterval = null;
 let totalSegundos = 0;
 let nomeTreinoAtivoAtualmente = "";
 
+// Elementos de Controlo das Abas
 const campoIA = document.getElementById('campo-ia');
 const caixaSugestoes = document.getElementById('caixa-sugestoes');
 const treinoAtual = document.getElementById('treino-atual');
 const nomeTreinoInput = document.getElementById('nome-treino');
-const alerta = document.getElementById('alerta');
 const numProntos = document.getElementById('num-prontos');
 
-const modalHistorico = document.getElementById('modal-historico');
-const modalTituloTreino = document.getElementById('modal-titulo-treino');
-const modalListaExercicios = document.getElementById('modal-lista-exercicios');
-const btnFecharModal = document.getElementById('btn-fechar-modal');
+// Estado do Calendário
+let dataAtualCalendario = new Date();
 
-// --- SISTEMA DE ACESSO OFFLINE INTEGRADO ---
-
-// 1. Tenta carregar dados locais imediatamente para o app funcionar mesmo sem rede
-carregarDadosLocais();
-
-// Monitor de sessão do Firebase
+// ==========================================================================
+// 2. CONTROLO DE SESSÃO & SINCRONIZAÇÃO (FIREBASE)
+// ==========================================================================
 auth.onAuthStateChanged((user) => {
     if (user) {
         usuarioLogadoAtualmente = user.uid;
-        localStorage.setItem('alphafit_ultimo_usuario', user.uid); // Lembra quem logou
-        liberarAcessoApp();
+        nomeUsuarioLogado = user.email.split('@')[0];
+        document.getElementById('nome-perfil-usuario').innerText = "💪 " + nomeUsuarioLogado;
+        
+        telaAuth.style.display = 'none';
+        conteudoApp.style.display = 'flex';
+        
+        carregarDadosDoUsuario();
+        escutarFeedSocial();
     } else {
-        // Se não há internet e já existia um usuário logado antes, pula a tela de login!
-        const ultimoUsuario = localStorage.getItem('alphafit_ultimo_usuario');
-        if (ultimoUsuario) {
-            usuarioLogadoAtualmente = ultimoUsuario;
-            liberarAcessoApp();
-        } else {
-            usuarioLogadoAtualmente = null;
-            telaAuth.style.display = 'flex';
-            conteudoApp.style.display = 'none';
-        }
+        usuarioLogadoAtualmente = null;
+        telaAuth.style.display = 'flex';
+        conteudoApp.style.display = 'none';
     }
 });
 
-function liberarAcessoApp() {
-    telaAuth.style.display = 'none';
-    conteudoApp.style.display = 'block';
-    
-    // Renderiza o que já tem gravado no celular imediatamente
-    renderizarTreinosProntos();
-    renderizarHistorico();
-    atualizarBadges();
-
-    // Se tiver internet, busca atualizações mais novas da nuvem de fundo
-    if (navigator.onLine) {
-        carregarDadosDaNuvem();
-    }
-}
-
-// Carrega o banco de dados do celular
-function carregarDadosLocais() {
-    const rotinasLocais = localStorage.getItem('alphafit_rotinas');
-    const historicoLocal = localStorage.getItem('alphafit_historico');
-    
-    if (rotinasLocais) rotinasSalvas = JSON.parse(rotinasLocais);
-    if (historicoLocal) historicoTreinos = JSON.parse(historicoLocal);
-}
-
-// Salva localmente e tenta enviar para nuvem
-function salvarDadosGerais() {
-    // Guarda na memória física do celular na mesma hora (Funciona offline!)
-    localStorage.setItem('alphafit_rotinas', JSON.stringify(rotinasSalvas));
-    localStorage.setItem('alphafit_historico', JSON.stringify(historicoTreinos));
-
-    // Se o celular estiver conectado à internet, atualiza o backup na nuvem
-    if (navigator.onLine && usuarioLogadoAtualmente) {
-        db.collection("usuarios").doc(usuarioLogadoAtualmente).set({
-            historicoTreinos: historicoTreinos,
-            rotinasSalvas: rotinasSalvas
-        }, { merge: true }).catch(err => console.log("Aguardando rede para sincronizar nuvem..."));
-    }
-}
-
-function carregarDadosDaNuvem() {
+function carregarDadosDoUsuario() {
     if (!usuarioLogadoAtualmente) return;
 
     db.collection("usuarios").doc(usuarioLogadoAtualmente).get().then((doc) => {
         if (doc.exists) {
             const dados = doc.data();
-            // Só substitui se o da nuvem tiver dados reais para não zerar o offline
-            if (dados.rotinasSalvas || dados.historicoTreinos) {
-                historicoTreinos = dados.historicoTreinos || [];
-                rotinasSalvas = dados.rotinasSalvas || [];
-                
-                // Atualiza o armazenamento do celular com o backup da nuvem
-                localStorage.setItem('alphafit_rotinas', JSON.stringify(rotinasSalvas));
-                localStorage.setItem('alphafit_historico', JSON.stringify(historicoTreinos));
-                
-                renderizarTreinosProntos();
-                renderizarHistorico();
-                atualizarBadges();
-            }
+            historicoTreinos = dados.historicoTreinos || [];
+            rotinasSalvas = dados.rotinasSalvas || [];
+            historicoPesos = dados.historicoPesos || [];
+            perfilPublico = dados.perfilPublico !== undefined ? dados.perfilPublico : true;
         }
-    }).catch((error) => {
-        console.log("Rodando em modo Offline local.");
+        
+        atualizarInterfacePerfil();
+        renderizarTreinosProntos();
+        renderizarHistorico();
+        renderizarCalendario();
     });
 }
 
-// --- LOGOUT / SAIR (Limpa o celular e a nuvem) ---
-document.getElementById('btn-sair-usuario').addEventListener('click', () => {
-    if (confirm("Deseja realmente sair da sua conta?")) {
-        // Limpa as senhas guardadas no aparelho
-        localStorage.removeItem('alphafit_ultimo_usuario');
-        localStorage.removeItem('alphafit_rotinas');
-        localStorage.removeItem('alphafit_historico');
-        
-        auth.signOut().then(() => {
-            exerciciosNoTreino = [];
-            rotinasSalvas = [];
-            historicoTreinos = [];
-            document.getElementById('treino-atual').innerHTML = "";
-            document.getElementById('nome-treino').value = "";
-            clearInterval(timerInterval);
-            document.getElementById('timer-global').style.display = 'none';
-            location.reload(); // Recarrega para voltar para a tela de login limpa
-        }).catch(() => {
-            // Se estiver sem internet, força a volta para tela de login mesmo assim
-            location.reload();
-        });
-    }
-});
-
-// --- LÓGICA DAS ABAS E INTERAÇÃO DA TELA ---
-document.getElementById('link-ir-cadastrar').addEventListener('click', (e) => {
-    e.preventDefault(); formLogin.style.display = 'none'; formCadastro.style.display = 'block';
-});
-document.getElementById('link-ir-login').addEventListener('click', (e) => {
-    e.preventDefault(); formCadastro.style.display = 'none'; formLogin.style.display = 'block';
-});
-
-document.getElementById('btn-registrar').addEventListener('click', () => {
-    const emailInput = document.getElementById('cad-usuario').value.trim();
-    const senha = document.getElementById('cad-senha').value;
-    const confirmaSenha = document.getElementById('cad-senha-confirma').value;
-
-    if (!emailInput || !senha) { alert("Preencha todos os campos!"); return; }
-    if (senha !== confirmaSenha) { alert("As senhas não coincidem!"); return; }
-    
-    const email = emailInput.includes('@') ? emailInput : `${emailInput}@alphafit.com`;
-
-    auth.createUserWithEmailAndPassword(email, senha)
-        .then(() => {
-            alert("✅ Conta criada com sucesso!");
-            formCadastro.style.display = 'none';
-            formLogin.style.display = 'block';
-        })
-        .catch((error) => {
-            alert("Erro ao cadastrar: " + error.message);
-        });
-});
-
-document.getElementById('btn-entrar').addEventListener('click', () => {
-    const emailInput = document.getElementById('login-usuario').value.trim();
-    const senha = document.getElementById('login-senha').value;
-
-    if (!emailInput || !senha) { alert("Preencha os campos!"); return; }
-
-    const email = emailInput.includes('@') ? emailInput : `${emailInput}@alphafit.com`;
-
-    auth.signInWithEmailAndPassword(email, senha)
-        .catch((error) => {
-            alert("❌ Usuário ou senha incorretos!");
-        });
-});
-
-const dicionarioFitness = [
-    { termo: "rosca direta", opcoes: ["Rosca Direta com Barra W", "Rosca Direta com Halteres"] },
-    { termo: "agachamento", opcoes: ["Agachamento Livre com Barra", "Agachamento Hack", "Agachamento Búlgaro"] },
-    { termo: "perna", opcoes: ["Leg Press 45°", "Cadeira Extensora"] },
-    { termo: "supino", opcoes: ["Supino Reto com Barra", "Supino Inclinado com Halteres"] },
-    { termo: "peito", opcoes: ["Supino Reto com Barra", "Peck Deck (Voador)"] },
-    { termo: "costas", opcoes: ["Puxada Alta na Polia", "Remada Baixa"] },
-    { termo: "muay thai", opcoes: ["Treino de Saco: Soco + Chute", "Manopla de Velocidade"] }
-];
-
-btnFecharModal.addEventListener('click', () => modalHistorico.classList.remove('ativo'));
-
-document.getElementById('aba-montar-btn').addEventListener('click', () => mudarAba('montar'));
-document.getElementById('aba-prontos-btn').addEventListener('click', () => mudarAba('prontos'));
-document.getElementById('aba-historico-btn').addEventListener('click', () => mudarAba('historico'));
-
-function mudarAba(aba) {
-    document.getElementById('aba-montar-btn').classList.toggle('ativa', aba === 'montar');
-    document.getElementById('aba-prontos-btn').classList.toggle('ativa', aba === 'prontos');
-    document.getElementById('aba-historico-btn').classList.toggle('ativa', aba === 'historico');
-    
-    document.getElementById('secao-montar').style.display = aba === 'montar' ? 'block' : 'none';
-    document.getElementById('secao-prontos').style.display = aba === 'prontos' ? 'block' : 'none';
-    document.getElementById('secao-historico').style.display = aba === 'historico' ? 'block' : 'none';
-    
-    if (aba === 'prontos') renderizarTreinosProntos();
-    if (aba === 'historico') renderizarHistorico();
-    alerta.style.display = "none";
+function salvarDadosUsuario() {
+    if (!usuarioLogadoAtualmente) return;
+    db.collection("usuarios").doc(usuarioLogadoAtualmente).set({
+        historicoTreinos: historicoTreinos,
+        rotinasSalvas: rotinasSalvas,
+        historicoPesos: historicoPesos,
+        perfilPublico: perfilPublico,
+        nomeUsuario: nomeUsuarioLogado
+    }, { merge: true });
 }
 
-function atualizarBadges() { numProntos.innerText = rotinasSalvas.length; }
+// ==========================================================================
+// 3. NAVEGAÇÃO ENTRE ABAS (ESTILO INSTAGRAM)
+// ==========================================================================
+const abasIds = ['feed', 'montar', 'prontos', 'historico', 'perfil'];
+abasIds.forEach(aba => {
+    document.getElementById(`aba-${aba}-btn`).addEventListener('click', () => mudarAba(aba));
+});
+
+function mudarAba(abaAlvo) {
+    abasIds.forEach(aba => {
+        const btn = document.getElementById(`aba-${aba}-btn`);
+        const secao = document.getElementById(`secao-${aba}`);
+        
+        if(aba === abaAlvo) {
+            btn.classList.add('ativa');
+            secao.style.display = 'block';
+        } else {
+            btn.classList.remove('ativa');
+            secao.style.display = 'none';
+        }
+    });
+    
+    if(abaAlvo === 'perfil') {
+        renderizarCalendario();
+        renderizarHistoricoPesos();
+    }
+}
+
+// ==========================================================================
+// 4. FUNCIONALIDADE DO PERFIL, EVOLUÇÃO DE PESO E CALENDÁRIO
+// ==========================================================================
+function atualizarInterfacePerfil() {
+    numProntos.innerText = rotinasSalvas.length;
+    document.getElementById('total-dias-treinados').innerText = `${historicoTreinos.length} dias`;
+    
+    if (historicoPesos.length > 0) {
+        document.getElementById('peso-atual-texto').innerText = `${historicoPesos[0].peso} kg`;
+    } else {
+        document.getElementById('peso-atual-texto').innerText = "-- kg";
+    }
+    
+    document.getElementById('status-visibilidade').innerText = perfilPublico ? "Público 🌐" : "Privado 🔒";
+}
+
+document.getElementById('btn-registrar-peso').addEventListener('click', () => {
+    const inputPeso = document.getElementById('input-novo-peso');
+    const valorPeso = parseFloat(inputPeso.value);
+    
+    if (!valorPeso || valorPeso <= 0) { alert("Introduza um peso válido!"); return; }
+    
+    const novoRegistro = {
+        id: Date.now(),
+        data: new Date().toLocaleDateString('pt-BR'),
+        peso: valorPeso
+    };
+    
+    historicoPesos.unshift(novoRegistro);
+    inputPeso.value = "";
+    
+    salvarDadosUsuario();
+    atualizarInterfacePerfil();
+    renderizarHistoricoPesos();
+});
+
+function renderizarHistoricoPesos() {
+    const container = document.getElementById('historico-pesos');
+    container.innerHTML = "";
+    
+    if(historicoPesos.length === 0) {
+        container.innerHTML = `<p style="color: var(--text-muted); font-size: 14px;">Sem registos de peso ainda.</p>`;
+        return;
+    }
+    
+    // Mostra as últimas 5 evoluções de peso
+    historicoPesos.slice(0, 5).forEach(p => {
+        const item = document.createElement('div');
+        item.style = "display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;";
+        item.innerHTML = `<span>📅 ${p.data}</span> <strong>${p.peso} kg</strong>`;
+        container.appendChild(item);
+    });
+}
+
+// Lógica de Renderização do Calendário de Treinos
+function renderizarCalendario() {
+    const grid = document.getElementById('dias-calendario-grid');
+    const txtMesAno = document.getElementById('mes-ano-calendario');
+    grid.innerHTML = "";
+    
+    const ano = dataAtualCalendario.getFullYear();
+    const mes = dataAtualCalendario.getMonth();
+    
+    const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    txtMesAno.innerText = `${nomesMeses[mes]} ${ano}`;
+    
+    const primeiroDiaMes = new Date(ano, mes, 1).getDay();
+    const totalDiasNoMes = new Date(ano, mes + 1, 0).getDate();
+    
+    // Mapeia todos os dias treinados do histórico para este mês e ano específicos
+    const diasTreinados = historicoTreinos.filter(t => {
+        const partes = t.data.split('/'); // DD/MM/AAAA
+        return parseInt(partes[1]) === (mes + 1) && parseInt(partes[2]) === ano;
+    }).map(t => parseInt(t.data.split('/')[0]));
+
+    // Cria os espaços em branco para alinhar o primeiro dia da semana
+    for (let i = 0; i < primeiroDiaMes; i++) {
+        const vazio = document.createElement('div');
+        grid.appendChild(vazio);
+    }
+    
+    // Gera os dias reais do mês
+    for (let dia = 1; dia <= totalDiasNoMes; dia++) {
+        const celula = document.createElement('div');
+        celula.className = "dia-celula";
+        celula.innerText = dia;
+        
+        // Se o utilizador treinou neste dia, destaca a célula em verde neon!
+        if (diasTreinados.includes(dia)) {
+            celula.classList.add('treinado');
+            celula.title = "Treinaste neste dia!";
+        }
+        
+        grid.appendChild(celula);
+    }
+}
+
+document.getElementById('btn-prev-mes').addEventListener('click', () => { dataAtualCalendario.setMonth(dataAtualCalendario.getMonth() - 1); renderizarCalendario(); });
+document.getElementById('btn-next-mes').addEventListener('click', () => { dataAtualCalendario.setMonth(dataAtualCalendario.getMonth() + 1); renderizarCalendario(); });
+document.getElementById('btn-alternar-privacidade').addEventListener('click', () => {
+    perfilPublico = !perfilPublico;
+    salvarDadosUsuario();
+    atualizarInterfacePerfil();
+});
+
+// ==========================================================================
+// 5. ENGINE DA REDE SOCIAL (FEED ESTILO INSTAGRAM EM TEMPO REAL)
+// ==========================================================================
+document.getElementById('btn-abrir-postar').addEventListener('click', () => {
+    const caixa = document.getElementById('caixa-criar-post');
+    caixa.style.display = caixa.style.display === 'none' ? 'block' : 'none';
+});
+
+document.getElementById('btn-publicar-post').addEventListener('click', () => {
+    const texto = document.getElementById('texto-post').value.trim();
+    const urlFoto = document.getElementById('url-foto-post').value.trim();
+    
+    if(!texto) { alert("Escreve alguma coisa antes de publicar!"); return; }
+    if(!perfilPublico) { alert("Aviso: O teu perfil está como PRIVADO. Altera para PÚBLICO no teu Perfil para partilhares treinos no Feed!"); return; }
+
+    db.collection("feed").add({
+        uid: usuarioLogadoAtualmente,
+        usuario: nomeUsuarioLogado,
+        texto: texto,
+        foto: urlFoto || null,
+        dataHora: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        document.getElementById('texto-post').value = "";
+        document.getElementById('url-foto-post').value = "";
+        document.getElementById('caixa-criar-post').style.display = 'none';
+    });
+});
+
+function escutarFeedSocial() {
+    // Escuta o Firestore em tempo real. Quem publicar, aparece na hora para toda a gente!
+    db.collection("feed").orderBy("dataHora", "desc").limit(20).onSnapshot((snapshot) => {
+        const containerFeed = document.getElementById('lista-feed');
+        containerFeed.innerHTML = "";
+        
+        if (snapshot.empty) {
+            containerFeed.innerHTML = `<p style="text-align:center; color:var(--text-muted); padding:30px;">Ainda ninguém partilhou treinos hoje. Sê o primeiro!</p>`;
+            return;
+        }
+        
+        snapshot.forEach((doc) => {
+            const post = doc.data();
+            const card = document.createElement('div');
+            card.className = "card-feed";
+            
+            let htmlFoto = post.foto ? `<img src="${post.foto}" class="post-img" onerror="this.style.display='none'">` : "";
+            
+            card.innerHTML = `
+                <div class="post-user">🟢 @${post.usuario}</div>
+                <p style="font-size:15px; line-height:1.5;">${post.texto}</p>
+                ${htmlFoto}
+            `;
+            containerFeed.appendChild(card);
+        });
+    });
+}
+
+// ==========================================================================
+// 6. ADICIONAR TREINOS, ROTINAS, CRONÓMETRO (LOGICA ANTERIOR ADAPTADA)
+// ==========================================================================
+const dicionarioFitness = [
+    { termo: "rosca direta", opcoes: ["Rosca Direta com Barra W", "Rosca Direta com Halteres"] },
+    { termo: "agachamento", opcoes: ["Agachamento Livre", "Agachamento Hack", "Agachamento Búlgaro"] },
+    { termo: "supino", opcoes: ["Supino Reto com Barra", "Supino Inclinado com Halteres"] },
+    { termo: "peito", opcoes: ["Supino Reto com Barra", "Peck Deck / Voador"] },
+    { termo: "costas", opcoes: ["Puxada Alta", "Remada Baixa", "Puxada Cavalo"] },
+    { termo: "perna", opcoes: ["Leg Press 45°", "Cadeira Extensora", "Mesa Flexora"] }
+];
 
 campoIA.addEventListener('input', () => {
     const texto = campoIA.value.toLowerCase().trim();
     caixaSugestoes.innerHTML = "";
-
     if (texto.length === 0) { caixaSugestoes.style.display = "none"; return; }
 
     let achouAlgo = false;
@@ -242,9 +310,8 @@ campoIA.addEventListener('input', () => {
                 const divOpcao = document.createElement('div');
                 divOpcao.className = 'sugestao-item';
                 divOpcao.innerHTML = `<i class="fa-solid fa-dumbbell" style="color: var(--primary);"></i> ${opcao}`;
-                
                 divOpcao.addEventListener('click', () => {
-                    if (exerciciosNoTreino.some(e => e.nome === opcao)) { alert("Esse exercício já está na lista!"); return; }
+                    if (exerciciosNoTreino.some(e => e.nome === opcao)) { alert("Já adicionaste este exercício!"); return; }
                     adicionarExercicioNaTela(opcao);
                     campoIA.value = "";
                     caixaSugestoes.style.display = "none";
@@ -262,15 +329,12 @@ function adicionarExercicioNaTela(nomeExercicio, dadosSeries = null) {
     card.dataset.nome = nomeExercicio;
 
     card.innerHTML = `
-        <div class="card-top">
-            <h4>${nomeExercicio}</h4>
-            <button class="btn-remover"><i class="fa-solid fa-xmark"></i></button>
-        </div>
+        <div class="card-top"><h4>${nomeExercicio}</h4><button class="btn-remover"><i class="fa-solid fa-xmark"></i></button></div>
         <table class="tabela-series">
             <thead><tr><th>Série</th><th>KG</th><th>Reps</th><th><i class="fa-solid fa-check"></i></th></tr></thead>
             <tbody class="corpo-tabela-series"></tbody>
         </table>
-        <button class="btn-add-set"><i class="fa-solid fa-plus"></i> Adicionar Série</button>
+        <button class="btn-add-set" style="background:#222; color:#fff; border:none; padding:5px 10px; border-radius:5px; margin-top:5px; cursor:pointer;"><i class="fa-solid fa-plus"></i> Adicionar Série</button>
     `;
 
     card.querySelector('.btn-remover').addEventListener('click', () => {
@@ -279,25 +343,24 @@ function adicionarExercicioNaTela(nomeExercicio, dadosSeries = null) {
     });
 
     const corpoTabela = card.querySelector('.corpo-tabela-series');
-    
     function criarLinhaSerie(peso = "", reps = "") {
         const num = corpoTabela.children.length + 1;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td><span class="set-num">${num}</span></td>
-            <td><input type="number" class="input-num kg-input" value="${peso}" placeholder="-"></td>
-            <td><input type="number" class="input-num reps-input" value="${reps}" placeholder="-"></td>
-            <td><button class="btn-check-set"><i class="fa-solid fa-check"></i></button></td>
+            <td><span>${num}</span></td>
+            <td><input type="number" class="input-num kg-input" value="${peso}" style="width:60px; background:#121212; border:1px solid #333; color:#fff; text-align:center;" placeholder="-"></td>
+            <td><input type="number" class="input-num reps-input" value="${reps}" style="width:60px; background:#121212; border:1px solid #333; color:#fff; text-align:center;" placeholder="-"></td>
+            <td><button class="btn-check-set" style="background:none; border:none; color:var(--text-muted); cursor:pointer;"><i class="fa-solid fa-check"></i></button></td>
         `;
-        tr.querySelector('.btn-check-set').addEventListener('click', (e) => e.target.closest('.btn-check-set').classList.toggle('feito'));
+        tr.querySelector('.btn-check-set').addEventListener('click', (e) => {
+            e.target.closest('.btn-check-set').classList.toggle('feito');
+            e.target.closest('.btn-check-set').style.color = e.target.closest('.btn-check-set').classList.contains('feito') ? 'var(--primary)' : 'var(--text-muted)';
+        });
         corpoTabela.appendChild(tr);
     }
 
-    if (dadosSeries) {
-        dadosSeries.forEach(s => criarLinhaSerie(s.peso, s.reps));
-    } else {
-        criarLinhaSerie(); criarLinhaSerie();
-    }
+    if (dadosSeries) dadosSeries.forEach(s => criarLinhaSerie(s.peso, s.reps));
+    else { criarLinhaSerie(); criarLinhaSerie(); }
 
     card.querySelector('.btn-add-set').addEventListener('click', () => criarLinhaSerie());
     treinoAtual.appendChild(card);
@@ -306,186 +369,157 @@ function adicionarExercicioNaTela(nomeExercicio, dadosSeries = null) {
 
 document.getElementById('btn-salvar-rotina').addEventListener('click', () => {
     const nome = nomeTreinoInput.value.trim();
-    if (!nome) { alert("Dê um nome para o treino!"); return; }
-    if (exerciciosNoTreino.length === 0) { alert("Selecione pelo menos um exercício!"); return; }
+    if (!nome) { alert("Dá um nome ao treino!"); return; }
+    if (exerciciosNoTreino.length === 0) { alert("Adiciona pelo menos um exercício!"); return; }
 
     const exerciciosDados = [];
     treinoAtual.querySelectorAll('.card-exercicio').forEach(card => {
         const nomeEx = card.dataset.nome;
         const seriesDados = [];
         card.querySelectorAll('.corpo-tabela-series tr').forEach(tr => {
-            seriesDados.push({
-                peso: tr.querySelector('.kg-input').value,
-                reps: tr.querySelector('.reps-input').value
-            });
+            seriesDados.push({ peso: tr.querySelector('.kg-input').value, reps: tr.querySelector('.reps-input').value });
         });
         exerciciosDados.push({ nome: nomeEx, series: seriesDados });
     });
 
     const novaRotina = { nome, exercicios: exerciciosDados };
+    if (idEdicaoAtual !== null) { rotinasSalvas[idEdicaoAtual] = novaRotina; idEdicaoAtual = null; } 
+    else { rotinasSalvas.push(novaRotina); }
 
-    if (idEdicaoAtual !== null) {
-        rotinasSalvas[idEdicaoAtual] = novaRotina;
-        idEdicaoAtual = null;
-        document.getElementById('titulo-montar').innerText = "🛠️ Criar Nova Rotina";
-    } else {
-        rotinasSalvas.push(novaRotina);
-    }
-
-    salvarDadosGerais(); // Salva no celular e sincroniza!
+    salvarDadosUsuario();
     nomeTreinoInput.value = "";
     treinoAtual.innerHTML = "";
     exerciciosNoTreino = [];
-    atualizarBadges();
+    atualizarInterfacePerfil();
+    renderizarTreinosProntos();
     alert("Treino guardado com sucesso!");
 });
 
 function renderizarTreinosProntos() {
     const lista = document.getElementById('lista-treinos-salvos');
-    if (!lista) return;
     lista.innerHTML = "";
+    if (rotinasSalvas.length === 0) { lista.innerHTML = `<p style="color:var(--text-muted);">Nenhum treino guardado.</p>`; return; }
 
-    if (rotinasSalvas.length === 0) {
-        lista.innerHTML = `<p style="text-align:center; padding:20px; color:var(--text-muted);">Nenhum treino criado ainda.</p>`;
-        return;
-    }
-
-    rotinasSalvas.forEach((treino, indexOriginal) => {
+    rotinasSalvas.forEach((treino, index) => {
         const div = document.createElement('div');
-        div.className = 'card-treino-salvo';
+        div.className = 'card-feed';
+        div.style.padding = "20px";
         const listaExs = treino.exercicios.map(e => `• ${e.nome} (${e.series.length} séries)`).join('<br>');
-
         div.innerHTML = `
             <h3>${treino.nome}</h3>
-            <p style="line-height: 1.6; color: #ddd; margin-top: 10px;">${listaExs}</p>
-            <div class="botoes-treino-salvo">
-                <button class="btn-ts btn-ts-iniciar"><i class="fa-solid fa-play"></i> Iniciar</button>
-                <button class="btn-ts btn-ts-editar"><i class="fa-solid fa-pen"></i> Editar</button>
-                <button class="btn-ts btn-ts-deletar"><i class="fa-solid fa-trash"></i></button>
-            </div>
+            <p style="margin: 10px 0; color:#aaa; font-size:14px;">${listaExs}</p>
+            <button onclick="iniciarSessaoTreino(${index})" style="background:var(--primary); border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-weight:bold;">Iniciar</button>
         `;
-        
-        div.querySelector('.btn-ts-iniciar').addEventListener('click', () => iniciarSessaoTreino(indexOriginal));
-        div.querySelector('.btn-ts-editar').addEventListener('click', () => carregarParaEdicao(indexOriginal));
-        div.querySelector('.btn-ts-deletar').addEventListener('click', () => {
-            if(confirm("Excluir esse treino?")) {
-                rotinasSalvas.splice(indexOriginal, 1);
-                salvarDadosGerais();
-                renderizarTreinosProntos();
-                atualizarBadges();
-            }
-        });
         lista.appendChild(div);
     });
 }
 
-function carregarParaEdicao(index) {
-    idEdicaoAtual = index;
+function iniciarSessaoTreino(index) {
     const rotina = rotinasSalvas[index];
     nomeTreinoInput.value = rotina.nome;
     treinoAtual.innerHTML = "";
     exerciciosNoTreino = [];
-    document.getElementById('titulo-montar').innerText = `✏️ Editando: ${rotina.nome}`;
     rotina.exercicios.forEach(ex => adicionarExercicioNaTela(ex.nome, ex.series));
-    mudarAba('montar');
-}
-
-function iniciarSessaoTreino(index) {
-    const rotina = rotinasSalvas[index];
-    carregarParaEdicao(index);
-    idEdicaoAtual = null; 
     nomeTreinoAtivoAtualmente = rotina.nome;
+    mudarAba('montar');
     
     clearInterval(timerInterval);
     totalSegundos = 0;
     document.getElementById('timer-global').style.display = 'flex';
-    
     timerInterval = setInterval(() => {
         totalSegundos++;
-        const min = String(Math.floor(totalSegundos / 60)).padStart(2, '0');
-        const seg = String(totalSegundos % 60).padStart(2, '0');
-        document.getElementById('tempo-cronometro').innerText = `${min}:${seg}`;
+        document.getElementById('tempo-cronometro').innerText = `${String(Math.floor(totalSegundos / 60)).padStart(2, '0')}:${String(totalSegundos % 60).padStart(2, '0')}`;
     }, 1000);
 }
 
+document.getElementById('btn-comecar-direto').addEventListener('click', () => {
+    if(exerciciosNoTreino.length === 0) { alert("Adiciona exercícios primeiro!"); return; }
+    nomeTreinoAtivoAtualmente = nomeTreinoInput.value.trim() || "Treino Rápido";
+    document.getElementById('timer-global').style.display = 'flex';
+    clearInterval(timerInterval);
+    totalSegundos = 0;
+    timerInterval = setInterval(() => {
+        totalSegundos++;
+        document.getElementById('tempo-cronometro').innerText = `${String(Math.floor(totalSegundos / 60)).padStart(2, '0')}:${String(totalSegundos % 60).padStart(2, '0')}`;
+    }, 1000);
+});
+
 document.getElementById('btn-encerrar').addEventListener('click', () => {
-    let validacaoSucesso = true;
-    document.querySelectorAll('.input-num').forEach(i => i.classList.remove('erro-validacao'));
-
-    document.querySelectorAll('.kg-input, .reps-input').forEach(input => {
-        if(input.value.trim() === "") { input.classList.add('erro-validacao'); validacaoSucesso = false; }
-    });
-
-    if (!validacaoSucesso) { alert("Digite as cargas e repetições feitas!"); return; }
-
     const tempoFinal = document.getElementById('tempo-cronometro').innerText;
-    const dataAtual = new Date().toLocaleDateString('pt-BR');
-    let volumeTotal = 0;
-    const listaExerciciosExecutados = [];
+    const dataAtual = new Date().toLocaleDateString('pt-BR'); // Guarda em formato DD/MM/AAAA
+    
+    let totalCargaTreino = 0;
+    const exerciciosFeitos = [];
 
     treinoAtual.querySelectorAll('.card-exercicio').forEach(card => {
         const nomeEx = card.dataset.nome;
         const totalSets = card.querySelectorAll('.corpo-tabela-series tr').length;
+        
         card.querySelectorAll('.corpo-tabela-series tr').forEach(tr => {
             const kg = parseFloat(tr.querySelector('.kg-input').value) || 0;
             const reps = parseFloat(tr.querySelector('.reps-input').value) || 0;
-            volumeTotal += (kg * reps);
+            totalCargaTreino += (kg * reps);
         });
-        listaExerciciosExecutados.push({ nome: nomeEx, sets: totalSets });
+        
+        exerciciosFeitos.push({ nome: nomeEx, sets: totalSets });
     });
 
-    historicoTreinos.unshift({
+    const novaSessao = {
         id: Date.now(),
         nome: nomeTreinoAtivoAtualmente || "Treino Rápido",
         data: dataAtual,
         tempo: tempoFinal,
-        volume: volumeTotal.toLocaleString('pt-BR') + " kg",
-        exercicios: listaExerciciosExecutados
-    });
+        volume: totalCargaTreino + " kg",
+        exercicios: exerciciosFeitos
+    };
+
+    historicoTreinos.unshift(novaSessao);
+    salvarDadosUsuario();
     
-    salvarDadosGerais(); // Grava o treino finalizado localmente!
     clearInterval(timerInterval);
     document.getElementById('timer-global').style.display = 'none';
     nomeTreinoInput.value = "";
     treinoAtual.innerHTML = "";
     exerciciosNoTreino = [];
-    document.getElementById('titulo-montar').innerText = "🛠️ Criar Nova Rotina";
+    
+    alert(`Treino Concluído! Volume Total Movimentado: ${totalCargaTreino} kg!`);
     mudarAba('historico');
 });
 
 function renderizarHistorico() {
     const container = document.getElementById('lista-historico');
-    if (!container) return;
     container.innerHTML = "";
+    if (historicoTreinos.length === 0) { container.innerHTML = `<p style="color:var(--text-muted);">Nenhum treino no histórico.</p>`; return; }
 
-    if (historicoTreinos.length === 0) {
-        container.innerHTML = `<p style="text-align:center; padding:20px; color:var(--text-muted);">Nenhum treino feito ainda.</p>`;
-        return;
-    }
-
-    historicoTreinos.forEach((h) => {
+    historicoTreinos.forEach(h => {
         const div = document.createElement('div');
-        div.className = 'card-historico';
-        let htmlCard = `<h3>${h.nome}</h3><p class="hist-date">${h.data} • ⏱️ ${h.tempo} • 🏋️‍♂️ Vol: ${h.volume}</p><div class="hist-lista-exercicios">`;
-        h.exercicios.forEach(ex => {
-            htmlCard += `<div class="hist-item-exercicio">🔹 ${ex.sets} sets de ${ex.nome}</div>`;
-        });
-        htmlCard += `</div>`;
-        div.innerHTML = htmlCard;
+        div.className = 'card-feed';
+        let htmlExs = h.exercicios.map(e => `🔹 ${e.sets} séries de ${e.nome}`).join('<br>');
+        div.innerHTML = `
+            <h3>${h.nome}</h3>
+            <p style="font-size:13px; color:var(--primary); margin:5px 0;">📅 ${h.data} • ⏱️ ${h.tempo} • 🏋️ Vol: ${h.volume}</p>
+            <p style="font-size:14px; color:#ddd; line-height:1.5;">${htmlExs}</p>
+        `;
         container.appendChild(div);
     });
 }
 
-document.getElementById('btn-comecar-direto').addEventListener('click', () => {
-    if(exerciciosNoTreino.length === 0) { alert("Adicione exercícios primeiro!"); return; }
-    nomeTreinoAtivoAtualmente = nomeTreinoInput.value.trim() || "Treino Rápido";
-    clearInterval(timerInterval);
-    totalSegundos = 0;
-    document.getElementById('timer-global').style.display = 'flex';
-    timerInterval = setInterval(() => {
-        totalSegundos++;
-        const min = String(Math.floor(totalSegundos / 60)).padStart(2, '0');
-        const seg = String(totalSegundos % 60).padStart(2, '0');
-        document.getElementById('tempo-cronometro').innerText = `${min}:${seg}`;
-    }, 1000);
+// Autenticação básica
+document.getElementById('link-ir-cadastrar').addEventListener('click', (e) => { e.preventDefault(); formLogin.style.display = 'none'; formCadastro.style.display = 'block'; });
+document.getElementById('link-ir-login').addEventListener('click', (e) => { e.preventDefault(); formCadastro.style.display = 'none'; formLogin.style.display = 'block'; });
+
+document.getElementById('btn-registrar').addEventListener('click', () => {
+    const userIn = document.getElementById('cad-usuario').value.trim();
+    const senha = document.getElementById('cad-senha').value;
+    const email = userIn.includes('@') ? userIn : `${userIn}@alphafit.com`;
+    auth.createUserWithEmailAndPassword(email, senha).then(() => alert("Conta criada!")).catch(e => alert(e.message));
 });
+
+document.getElementById('btn-entrar').addEventListener('click', () => {
+    const userIn = document.getElementById('login-usuario').value.trim();
+    const senha = document.getElementById('login-senha').value;
+    const email = userIn.includes('@') ? userIn : `${userIn}@alphafit.com`;
+    auth.signInWithEmailAndPassword(email, senha).catch(e => alert("Dados inválidos!"));
+});
+
+document.getElementById('btn-sair-usuario').addEventListener('click', () => { auth.signOut().then(() => location.reload()); });
