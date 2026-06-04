@@ -1,0 +1,16 @@
+{
+  "name": "AlphaFit Pro",
+  "short_name": "AlphaFit",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3043/3043232.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
