@@ -6,14 +6,9 @@
     <title>AlphaFit - Pro Workout Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="estilo.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#121212">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 <body>
 
-    <!-- TELA DE AUTENTICAÇÃO -->
     <div id="tela-auth" class="auth-overlay">
         <div class="auth-box">
             <h1 class="auth-logo">⚡ AlphaFit</h1>
@@ -30,23 +25,19 @@
                 <h2>Criar Nova Conta</h2>
                 <input type="text" id="cad-usuario" class="input-ia" placeholder="Escolha um Usuário">
                 <input type="password" id="cad-senha" class="input-ia" placeholder="Crie uma Senha" style="margin-top: 10px;">
-                <input type="password" id="cad-senha-confirma" class="input-ia" placeholder="Confirme a Senha" style="margin-top: 10px;">
                 <button class="btn-acao-principal" id="btn-registrar" style="margin-top: 15px; background-color: var(--accent); color: white;">Criar Conta</button>
                 <p class="auth-alternar">Já tem conta? <a href="#" id="link-ir-login">Fazer Login</a></p>
             </div>
         </div>
     </div>
 
-    <!-- TIMER GLOBAL -->
-    <div id="timer-global" class="timer-global">
+    <div id="timer-global" class="timer-global" style="display: none;">
         <span>⏱️ Tempo: <span id="tempo-cronometro">00:00</span></span>
-        <button class="btn-encerrar-treino" id="btn-encerrar">Encerrar</button>
+        <button class="btn-encerrar-treino" id="btn-encerrar">Encerrar Treino</button>
     </div>
 
-    <!-- ESTRUTURA PRINCIPAL DO APP COM MENU LATERAL -->
     <div class="wrapper-app" id="conteudo-app" style="display: none;">
         
-        <!-- MENU LATERAL ESQUERDO -->
         <nav class="menu-lateral">
             <div class="logo-menu">⚡ AlphaFit</div>
             <div class="abas-menu">
@@ -59,38 +50,32 @@
             <button class="menu-btn btn-sair" id="btn-sair-usuario"><i class="fa-solid fa-right-from-bracket"></i> <span>Sair</span></button>
         </nav>
 
-        <!-- CONTEÚDO PRINCIPAL (DIREITO) -->
         <main class="conteudo-principal">
             <div id="alerta" class="alerta"></div>
 
-            <!-- 1. SEÇÃO FEED SOCIAL (ESTILO INSTAGRAM) -->
-            <div id="secao-feed">
+            <div id="secao-feed" class="secao-conteudo">
                 <div class="feed-header">
                     <h2>🏋️‍♂️ Linha do Tempo</h2>
                     <button class="btn-novo-post" id="btn-abrir-postar"><i class="fa-solid fa-plus"></i> Compartilhar Treino</button>
                 </div>
                 
-                <!-- Caixa para criar nova publicação -->
-                <div id="caixa-criar-post" class="card-feed" style="display: none; margin-bottom: 20px;">
+                <div id="caixa-criar-post" class="card-exercicio" style="display: none; margin-bottom: 20px; padding: 20px;">
                     <h3>Nova Publicação</h3>
-                    <textarea id="texto-post" placeholder="Como foi o treino de hoje? Conta pra galera..."></textarea>
-                    <input type="text" id="url-foto-post" placeholder="Link de uma foto do treino (opcional)">
-                    <button class="btn-ts btn-ts-iniciar" id="btn-publicar-post" style="margin-top: 10px;">Publicar</button>
+                    <textarea id="texto-post" placeholder="Como foi o treino de hoje? Conta pra galera..." style="width: 100%; background: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; height: 80px; resize: none;"></textarea>
+                    <input type="text" id="url-foto-post" placeholder="Link de uma foto do seu treino (opcional)" style="width: 100%; background: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px; margin-top: 10px;">
+                    <button class="btn-acao-principal" id="btn-publicar-post" style="margin-top: 15px;">Publicar no Feed</button>
                 </div>
 
-                <div id="lista-feed">
-                    <!-- Posts vão aparecer aqui via JavaScript -->
-                </div>
+                <div id="lista-feed"></div>
             </div>
 
-            <!-- 2. SEÇÃO MONTAR -->
-            <div id="secao-montar" style="display: none;">
+            <div id="secao-montar" class="secao-conteudo" style="display: none;">
                 <h2 id="titulo-montar">🛠️ Criar Nova Rotina</h2>
-                <input type="text" id="nome-treino" class="input-nome-treino" placeholder="Ex: Treino de Peito Avançado">
+                <input type="text" id="nome-treino" class="input-nome-treino" placeholder="Ex: Treino de Peito Avançado" style="margin-bottom: 15px;">
 
-                <div class="busca-container">
+                <div class="busca-container" style="position: relative; margin-bottom: 20px;">
                     <input type="text" id="campo-ia" class="input-ia" placeholder="🔍 Busque o exercício..." autocomplete="off">
-                    <div id="caixa-sugestoes" class="sugestoes-box"></div>
+                    <div id="caixa-sugestoes" class="sugestoes-box" style="display: none; position: absolute; width: 100%; background: var(--bg-card); border: 1px solid #333; z-index: 10;"></div>
                 </div>
 
                 <div id="treino-atual"></div>
@@ -99,74 +84,63 @@
                 <button class="btn-acao-principal" id="btn-comecar-direto" style="background-color: var(--accent); color: white;"><i class="fa-solid fa-play"></i> Começar sem Salvar</button>
             </div>
 
-            <!-- 3. SEÇÃO PRONTOS -->
-            <div id="secao-prontos" style="display: none;">
+            <div id="secao-prontos" class="secao-conteudo" style="display: none;">
                 <h2>📋 Meus Treinos Salvos</h2>
-                <div id="lista-treinos-salvos"></div>
+                <div id="lista-treinos-salvos" style="margin-top: 20px;"></div>
             </div>
 
-            <!-- 4. SEÇÃO HISTÓRICO -->
-            <div id="secao-historico" style="display: none;">
+            <div id="secao-historico" class="secao-conteudo" style="display: none;">
                 <h2>⏱️ Histórico de Sessões</h2>
-                <div id="lista-historico"></div>
+                <div id="lista-historico" style="margin-top: 20px;"></div>
             </div>
 
-            <!-- 5. SEÇÃO PERFIL & RENDIMENTO (CALENDÁRIO E PESO) -->
-            <div id="secao-perfil" style="display: none;">
-                <div class="perfil-topo">
-                    <div class="avatar-grande">👤</div>
+            <div id="secao-perfil" class="secao-conteudo" style="display: none;">
+                <div style="display: flex; align-items: center; gap: 20px; background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                    <div style="font-size: 40px; background: #2c2c2e; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">👤</div>
                     <div>
-                        <h2 id="nome-perfil-usuario">Carregando...</h2>
-                        <p class="status-privacidade">Perfil: <span id="status-visibilidade">Público 🌐</span> <button id="btn-alternar-privacidade" class="btn-pequeno">Mudar</button></p>
+                        <h2 id="nome-perfil-usuario">Atleta Alpha</h2>
+                        <p style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">Perfil Ativo: <span id="status-visibilidade" style="color: var(--primary);">Público 🌐</span></p>
                     </div>
                 </div>
 
-                <!-- Painel de Estatísticas -->
-                <div class="grid-stats">
-                    <div class="card-stat">
-                        <h4>Dias Treinados</h4>
-                        <p id="total-dias-treinados">0 dias</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #2c2c2c;">
+                        <h4 style="color: var(--text-muted);">Dias Treinados</h4>
+                        <p id="total-dias-treinados" style="font-size: 32px; font-weight: bold; color: var(--primary); margin-top: 5px;">0 dias</p>
                     </div>
-                    <div class="card-stat">
-                        <h4>Peso Atual</h4>
-                        <p id="peso-atual-texto">-- kg</p>
-                    </div>
-                </div>
-
-                <!-- Painel de Histórico de Peso / Carga -->
-                <div class="card-perfil-secao">
-                    <h3>📈 Registrar Evolução (Peso / Carga)</h3>
-                    <div class="form-inline">
-                        <input type="number" id="input-novo-peso" placeholder="Ex: 78.5 (KG)">
-                        <button class="btn-pequeno-acao" id="btn-registrar-peso">Registrar</button>
-                    </div>
-                    <div id="historico-pesos" class="lista-mini-historico">
-                        <!-- Histórico de peso listado aqui -->
+                    <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; text-align: center; border: 1px solid #2c2c2c;">
+                        <h4 style="color: var(--text-muted);">Peso Atual</h4>
+                        <p id="peso-atual-texto" style="font-size: 32px; font-weight: bold; color: var(--accent); margin-top: 5px;">-- kg</p>
                     </div>
                 </div>
 
-                <!-- Calendário Dinâmico de Treinos -->
-                <div class="card-perfil-secao">
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; margin-bottom: 20px; border: 1px solid #2c2c2c;">
+                    <h3>📈 Registrar Balança / Peso</h3>
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <input type="number" id="input-novo-peso" placeholder="Ex: 78.5" style="flex-grow: 1; background: #121212; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 8px;">
+                        <button id="btn-registrar-peso" style="background: var(--primary); color: #000; border: none; padding: 0 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Registrar</button>
+                    </div>
+                    <div id="historico-pesos" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;"></div>
+                </div>
+
+                <div style="background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid #2c2c2c;">
                     <h3>📅 Calendário de Treinos</h3>
-                    <div class="calendario-container">
-                        <div class="calendario-header">
-                            <button id="btn-prev-mes"><i class="fa-solid fa-chevron-left"></i></button>
-                            <h4 id="mes-ano-calendario">Junho 2026</h4>
-                            <button id="btn-next-mes"><i class="fa-solid fa-chevron-right"></i></button>
+                    <div style="margin-top: 15px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <button id="btn-prev-mes" style="background: none; border: none; color: #fff; cursor: pointer;"><i class="fa-solid fa-chevron-left"></i></button>
+                            <h4 id="mes-ano-calendario" style="color: var(--primary);">Junho 2026</h4>
+                            <button id="btn-next-mes" style="background: none; border: none; color: #fff; cursor: pointer;"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
-                        <div class="dias-semana-grid">
+                        <div style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; color: var(--text-muted); font-weight: bold; margin-bottom: 10px; font-size: 14px;">
                             <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
                         </div>
-                        <div id="dias-calendario-grid" class="dias-grid">
-                            <!-- Dias gerados via JS -->
-                        </div>
+                        <div id="dias-calendario-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px;"></div>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- MODAL DE DETALHES -->
     <div id="modal-historico" class="modal-overlay">
         <div class="modal-conteudo">
             <div class="modal-header">
@@ -179,9 +153,9 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
