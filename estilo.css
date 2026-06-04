@@ -1,179 +1,85 @@
-:root {
-    --primary: #00E676;
-    --bg-dark: #121212;
-    --bg-card: #1E1E1E;
-    --text-main: #FFFFFF;
-    --text-muted: #A0A0A0;
-    --accent: #FF5722;
-    --border: #2c2c2e;
+/* ==========================================================================
+   ESTILOS COMPLEMENTARES (MODAL & SUGESTÕES)
+   ========================================================================== */
+
+/* Caixa de Sugestões de Exercícios */
+.sugestoes-box {
+    max-height: 200px;
+    overflow-y: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    margin-top: 5px;
 }
 
-* { 
-    margin: 0; 
-    padding: 0; 
-    box-sizing: border-box; 
-    font-family: 'Segoe UI', -apple-system, sans-serif; 
+.sugestao-item {
+    padding: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #222;
+    background-color: #1a1a1a;
+    transition: background 0.2s;
+    font-size: 14px;
 }
 
-body { 
-    background-color: var(--bg-dark); 
-    color: var(--text-main); 
-}
-
-/* CONTAINER PRINCIPAL DO APP INTEGRADO */
-.wrapper-app {
-    display: flex;
-    min-height: 100vh;
-    width: 100vw;
-}
-
-/* MENU LATERAL FIXO ESQUERDO */
-.menu-lateral {
-    width: 260px;
-    background-color: #000000;
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 25px 20px;
-    position: fixed;
-    height: 100vh;
-    left: 0;
-    top: 0;
-    z-index: 100;
-}
-
-.logo-menu {
-    font-size: 26px;
-    font-weight: bold;
+.sugestao-item:hover {
+    background-color: #2a2a2a;
     color: var(--primary);
-    letter-spacing: 1px;
-    margin-bottom: 35px;
-    padding-left: 10px;
 }
 
-.abas-menu {
+/* Modal Pop-up do Histórico */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    display: none; /* Ativado via JS */
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal-conteudo {
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid var(--border);
+    animation: surgimentoModal 0.3s ease;
+}
+
+.modal-header {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-    flex-grow: 1;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+    margin-bottom: 15px;
 }
 
-.menu-btn {
+.btn-fechar-modal {
     background: none;
     border: none;
-    color: var(--text-main);
-    font-size: 16px;
-    padding: 14px 16px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    cursor: pointer;
-    border-radius: 10px;
-    width: 100%;
-    text-align: left;
-    transition: all 0.2s ease;
-}
-
-.menu-btn i {
+    color: var(--text-muted);
     font-size: 20px;
-    width: 25px;
-    text-align: center;
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
-.menu-btn:hover {
-    background-color: var(--bg-card);
-}
-
-.menu-btn.ativa {
-    background-color: rgba(0, 230, 118, 0.12);
-    color: var(--primary);
-    font-weight: bold;
-}
-
-.btn-sair {
+.btn-fechar-modal:hover {
     color: #ff5252;
 }
-.btn-sair:hover {
-    background-color: rgba(255, 82, 82, 0.1);
-}
 
-/* ÁREA DE CONTEÚDO PRINCIPAL (DIREITA) */
-.conteudo-principal {
-    flex-grow: 1;
-    margin-left: 260px; /* Deixa o espaço para o menu esquerdo */
-    padding: 40px;
-    max-width: 1000px;
-    width: calc(100% - 260px);
-}
-
-.secao-conteudo {
-    background-color: var(--bg-card);
-    padding: 30px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    margin-top: 20px;
-}
-
-/* CARD DE EXERCÍCIOS / FEED */
-.card-exercicio {
-    background-color: #151515;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 15px;
-    margin-top: 15px;
-}
-
-.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-.btn-remover { background: none; border: none; color: #ff5252; cursor: pointer; font-size: 16px; }
-
-/* CALENDÁRIO ESTILIZAÇÃO */
-.dia-celula {
-    background-color: #121212;
-    aspect-ratio: 1;
+.hist-lista-exercicios {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 8px;
-    font-size: 14px;
-    border: 1px solid var(--border);
-}
-.dia-celula.treinado {
-    background-color: rgba(0, 230, 118, 0.22);
-    border-color: var(--primary);
-    color: var(--primary);
-    font-weight: bold;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-/* AUTENTICAÇÃO */
-.auth-overlay { position: fixed; top:0; left:0; width:100vw; height:100vh; background:#000; display:flex; justify-content:center; align-items:center; z-index:1000; }
-.auth-box { background: var(--bg-card); padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
-.auth-logo { color: var(--primary); font-size: 32px; margin-bottom: 25px; }
-.auth-alternar { margin-top: 15px; font-size: 14px; color: var(--text-muted); }
-.auth-alternar a { color: var(--primary); text-decoration: none; }
-
-/* OUTROS COMPONENTES */
-.input-ia, .input-nome-treino { width: 100%; background: #121212; border: 1px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; font-size: 15px; outline: none; }
-.btn-acao-principal { width:100%; background: var(--primary); color:#000; border:none; padding:14px; border-radius:8px; font-size:16px; font-weight:bold; cursor:pointer; margin-top:10px; }
-.btn-novo-post { background: var(--primary); color:#000; border:none; padding:8px 16px; border-radius:8px; font-weight:bold; cursor:pointer; }
-.feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-
-.tabela-series { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.tabela-series th { color: var(--text-muted); font-size: 12px; text-align: center; padding-bottom: 8px; }
-.tabela-series td { text-align: center; padding: 6px 0; }
-.btn-check-set.feito { color: var(--primary) !important; }
-
-/* TIMER FIXO NO TOPO DO CONTEÚDO */
-.timer-global { position: fixed; top: 0; right: 0; width: calc(100% - 260px); background: #222; border-bottom: 1px solid var(--border); padding: 12px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 50; }
-.btn-encerrar-treino { background: var(--accent); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
-/* RESPONSIVIDADE DE TRANSFORMAÇÃO EM APP MOBILE */
-@media (max-width: 768px) {
-    .menu-lateral { width: 100%; height: 65px; flex-direction: row; top: auto; bottom: 0; border-right: none; border-top: 1px solid var(--border); padding: 5px 10px; }
-    .logo-menu, .menu-btn span, .btn-sair { display: none; }
-    .abas-menu { flex-direction: row; width: 100%; justify-content: space-around; }
-    .menu-btn { width: auto; justify-content: center; padding: 10px; }
-    .conteudo-principal { margin-left: 0; width: 100%; padding: 15px; padding-bottom: 90px; }
-    .timer-global { width: 100%; padding: 12px 15px; }
+@keyframes surgimentoModal {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
 }
